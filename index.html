@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Costco Matthews — Gas Price Tracker</title>
+
+  <!-- Using unpkg.com which serves npm packages directly and reliably
+       exposes the correct global variable names in the browser -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Recharts depends on a few other libraries that must load first -->
+  <script src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <!-- Babel translates JSX into plain JavaScript right in the browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f172a; font-family: system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    // ============================================================
+    //  GAS PRICE DATA — This is the only section you need to edit
+    //  To add a new price: copy the last line, change the date
+    //  and price, and save the file. That's it.
+    //  The LAST entry is automatically shown as "Latest".
+    // ============================================================
+    const GAS_PRICES = [
+      { date: "Feb 27", price: 2.399 },  // Receipt — day before war
+      { date: "Mar 6" , price: 2.899 },
+      { date: "Mar 7" , price: 2.959 },
+      { date: "Mar 8" , price: 2.999 },
+      { date: "Mar 10", price: 3.099 },
+      { date: "Mar 11", price: 3.159 },
+      { date: "Mar 12", price: 3.199 },
+      { date: "Mar 13", price: 3.249 },
+      { date: "Mar 15", price: 3.399 },
+      { date: "Mar 16", price: 3.439 },
+      { date: "Mar 18", price: 3.479 }, 
+      { date: "Mar 19", price: 3.549 },
+      { date: "Mar 22", price: 3.599 },
+      { date: "Mar 29", price: 3.549 },
+      { date: "Apr 01", price: 3.699 },
+    ];
+    // ============================================================
+
+    // Pull the components out of the global Recharts object
+    const { LineChart, Line, XAxis, YAxis, CartesianGrid,
+            Tooltip, ReferenceLine, ResponsiveContainer } = Recharts;
+
+    // Compute summary stats automatically from the data above
+    const BASE      = GAS_PRICES[0];
+    const LATEST    = GAS_PRICES[GAS_PRICES.length - 1];
+    const INCREASE  = (LATEST.price - BASE.price).toFixed(3);
+    const PCT       = (((LATEST.price - BASE.price) / BASE.price) * 100).toFixed(1);
+    const DATE_RANGE = `${BASE.date} – ${LATEST.date}, 2026`;
+    const Y_MAX     = Math.ceil(LATEST.price * 10) / 10 + 0.2;
+
+    const CustomTooltip = ({ active, payload, label }) => {
+      if (!active || !payload?.length) return null;
+      const val  = payload[0].value;
+      const diff = (val - BASE.price).toFixed(3);
+      const pct  = (((val - BASE.price) / BASE.price) * 100).toFixed(1);
+      return (
+        <div style={{ background:"#1e293b", border:"1px solid #334155",
+                      borderRadius:8, padding:"10px 14px" }}>
+          <p style={{ color:"#94a3b8", margin:0, fontSize:13 }}>
+            {label}{label === LATEST.date ? " (latest)" : ""}
+          </p>
+          <p style={{ color:"#f97316", margin:"4px 0 0", fontSize:18, fontWeight:700 }}>
+            ${val.toFixed(3)}
+          </p>
+          {val !== BASE.price && (
+            <p style={{ color:"#ef4444", margin:"2px 0 0", fontSize:12 }}>
+              +${diff} (+{pct}%) vs {BASE.date}
+            </p>
+          )}
+        </div>
+      );
+    };
+
+    const CustomDot = ({ cx, cy, payload }) => (
+      <circle cx={cx} cy={cy}
+        r={payload.date === LATEST.date ? 7 : 5}
+        fill={payload.date === LATEST.date ? "#facc15" : "#f97316"} />
+    );
+
+    function GasPriceChart() {
+      return (
+        <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column",
+                      alignItems:"center", justifyContent:"center", padding:"32px 16px" }}>
+          <div style={{ width:"100%", maxWidth:720 }}>
+
+            <h2 style={{ color:"#f1f5f9", fontSize:20, fontWeight:700, marginBottom:4 }}>
+              Costco Matthews — Regular Gas Price
+            </h2>
+            <p style={{ color:"#64748b", fontSize:13, marginBottom:32 }}>
+              $/gallon · {DATE_RANGE} · Costco #367, Matthews NC
+            </p>
+
+            <ResponsiveContainer width="100%" height={340}>
+              <LineChart data={GAS_PRICES} margin={{ top:10, right:20, left:10, bottom:10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="date"
+                  tick={{ fill:"#94a3b8", fontSize:13 }}
+                  axisLine={{ stroke:"#334155" }} tickLine={false} />
+                <YAxis domain={[2.2, Y_MAX]}
+                  tickFormatter={v => `$${v.toFixed(2)}`}
+                  tick={{ fill:"#94a3b8", fontSize:13 }}
+                  axisLine={{ stroke:"#334155" }} tickLine={false} width={60} />
+                <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine x={BASE.date} stroke="#ef4444" strokeDasharray="4 3"
+                  label={{ value:"War starts Feb 28", position:"insideTopRight",
+                           fill:"#ef4444", fontSize:11, dy:-6 }} />
+                <Line type="monotone" dataKey="price"
+                  stroke="#f97316" strokeWidth={2.5}
+                  dot={<CustomDot />} activeDot={{ r:7, fill:"#fb923c" }} />
+              </LineChart>
+            </ResponsiveContainer>
+
+            <div style={{ display:"flex", gap:24, marginTop:28, flexWrap:"wrap" }}>
+              {[
+                { label: `Pre-war (${BASE.date})`,  value: `$${BASE.price.toFixed(3)}` },
+                { label: `Latest (${LATEST.date})`, value: `$${LATEST.price.toFixed(3)}` },
+                { label: "Increase",                value: `+$${INCREASE}` },
+                { label: "% Change",                value: `+${PCT}%` },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ background:"#1e293b", borderRadius:8,
+                                          padding:"12px 18px", flex:"1 1 140px" }}>
+                  <p style={{ color:"#64748b", fontSize:11, margin:0,
+                               textTransform:"uppercase", letterSpacing:"0.05em" }}>{label}</p>
+                  <p style={{ color:"#f1f5f9", fontSize:20, fontWeight:700,
+                               margin:"4px 0 0" }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display:"flex", gap:16, marginTop:12, alignItems:"center" }}>
+              <span style={{ color:"#f97316", fontSize:12 }}>● Data points</span>
+              <span style={{ color:"#facc15", fontSize:12 }}>● Latest ({LATEST.date})</span>
+            </div>
+
+            <p style={{ color:"#475569", fontSize:11, marginTop:12, textAlign:"center" }}>
+              Sources: Costco receipt (Feb 27) · Costco Warehouse Tools app screenshots
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root"))
+            .render(<GasPriceChart />);
+
+  </script>
+</body>
+</html>
