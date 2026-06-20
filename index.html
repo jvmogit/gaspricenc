@@ -104,7 +104,7 @@
     const INCREASE  = (LATEST.price - BASE.price).toFixed(3);
     const PCT       = (((LATEST.price - BASE.price) / BASE.price) * 100).toFixed(1);
     const DATE_RANGE = `${BASE.date} – ${LATEST.date}, 2026`;
-    const Y_MAX     = Math.ceil(LATEST.price * 10) / 10 + 0.2;
+    const Y_MAX     = Math.ceil(Math.max(...GAS_PRICES.map(d => d.price)) * 10) / 10 + 0.2;
 
     const CustomTooltip = ({ active, payload, label }) => {
       if (!active || !payload?.length) return null;
